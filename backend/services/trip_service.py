@@ -29,3 +29,12 @@ def print_transportation_recommendation(category):
         print("\nRecommended Transportation: Train")
     else:
         print("\nRecommended Transportation: Flight")
+
+def get_travel_season(month):
+    month = month.lower()
+    if month in ["december","12"]:
+        return "Peak Season"
+    elif month in ["june","6"]:
+        return "Holiday Season"
+    else:
+        return "Regular Season"

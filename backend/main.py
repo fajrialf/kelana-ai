@@ -1,4 +1,4 @@
-from services.trip_service import calculate_daily_budget,get_trip_category, print_recommended_places, print_transportation_recommendation
+from services.trip_service import calculate_daily_budget,get_trip_category,print_recommended_places, print_transportation_recommendation,get_travel_season
 
 
 destinations =[]
@@ -30,6 +30,7 @@ def print_trip_summary(destinations, days, budget, travel_style, hotel,food, tra
     category = get_trip_category(1500)
     total_cost = estimated_cost(hotel, food, transportation, miscs)
     allDestinations = ""
+    season= get_travel_season(travel_month)
     for destination in destinations:
         allDestinations+= destination + ", "
     allDestinations = allDestinations[:-2]  # Remove the trailing comma and space
@@ -43,6 +44,7 @@ def print_trip_summary(destinations, days, budget, travel_style, hotel,food, tra
     print(f"Travel Style            : {travel_style}")
     print(f"Category                : {category}")
     print(f"Travel Months           : {travel_month}")
+    print(f"Season                  : {season}")
     print(f"Total Estimated Cost    : {total_cost:.2f} {currency}")
     print(f"Daily Budget            : {daily} {currency}/day")
     if (total_cost > budget):
