@@ -10,25 +10,22 @@ def get_trip_category(budget):
 def calculate_daily_budget(budget,days):
     return budget/days
 
-def print_recommended_places():    
+def get_recommended_places():    
     recommended_place = [
         "Tokyo Tower",
         "Shibuya",
         "Mount Fuji",
     ]
+    return recommended_place
 
-    print(f"\nRecommended Places:\n")
-    for place in recommended_place:
-        print(f"- {place}")
-
-def print_transportation_recommendation(category):
+def get_transportation_recommendation(category):
     category = category.lower()
     if category == "backpacker":
-        print("\nRecommended Transportation: Bus")
+        return "Bus"
     elif category == "standard":
-        print("\nRecommended Transportation: Train")
+        return "Train"
     else:
-        print("\nRecommended Transportation: Flight")
+        return "Flight"
 
 def get_travel_season(month):
     month = month.lower()
@@ -38,3 +35,6 @@ def get_travel_season(month):
         return "Holiday Season"
     else:
         return "Regular Season"
+    
+def get_trip_categories():
+    return ["backpacker","standard", "luxury"]
