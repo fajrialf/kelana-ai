@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from services.trip_service import calculate_daily_budget,get_trip_category, get_transportation_recommendation,get_trip_categories
+from services.trip_service import calculate_daily_budget,get_trip_category, get_transportation_recommendation,get_trip_categories, get_recommended_places,get_recommended_transportations
 
 class TripRequest(BaseModel):
     destination: str
@@ -35,3 +35,11 @@ def create_trip(request: TripRequest):
 def trip_categories():
     return get_trip_categories()
 
+
+@app.get("/api/v1/recommendations")
+def get_recommendations():
+    return get_recommended_places()
+
+@app.get("/api/v1/transportations")
+def get_transportations():
+    return get_recommended_transportations()

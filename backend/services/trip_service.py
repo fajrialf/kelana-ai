@@ -38,3 +38,6 @@ def get_travel_season(month):
     
 def get_trip_categories():
     return ["backpacker","standard", "luxury"]
+
+def get_recommended_transportations():
+    return ["Bus","Train","Flight"]
