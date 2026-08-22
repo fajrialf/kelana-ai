@@ -36,6 +36,13 @@ def get_ai_recommendation(destination, days, budget, travel_style):
         f"Plan a {days}-day itinerary for {destination}. "
         f"Budget: USD {budget}. "
         f"Travel style: {travel_style}.\n\n"
+        "Include a subheading with morning, afternoon, and evening plans.\n"
+        "Break down estimated daily costs in USD.\n"
+        "Recommend local dishes or places to eat.\n"
+        "Suggest practical transportation options for the destination and travel style."
+        "Return the response in clean Markdown. "
+        "Use headings and bullet lists. "
+        "Do not wrap the response in a code block.\n\n"
     )
 
     client = configure_bedrock_api_key()
