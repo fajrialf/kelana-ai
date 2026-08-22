@@ -3,11 +3,14 @@ from pydantic import BaseModel
 from services.trip_service import calculate_daily_budget,get_trip_category, get_transportation_recommendation,get_trip_categories, get_recommended_places,get_recommended_transportations
 from databases import init_db, Sessionlocal
 from models.trip import Trip
+from services.bedrock_service import get_ai_recommendation
+
 class TripRequest(BaseModel):
     destination: str
     days: int
     budget: float
     travel_style: str
+    ai_recommendation: str
 
 init_db()
 app = FastAPI()
@@ -25,12 +28,14 @@ def create_trip(request: TripRequest):
     daily_budget = calculate_daily_budget(request.budget, request.days)
     category = get_trip_category(request.budget)
     transportation = get_transportation_recommendation(category)
+    ai_recommendation = get_ai_recommendation(request.destination, request.days, request.budget, request.travel_style)
     trip = Trip(
         destination=request.destination,
         days=request.days,
         budget=request.budget,
         category=category,
-        daily_budget=daily_budget
+        daily_budget=daily_budget,
+        ai_recommendation=ai_recommendation
     )
 
     db = Sessionlocal()
