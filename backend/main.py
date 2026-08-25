@@ -4,16 +4,18 @@ from services.trip_service import calculate_daily_budget,get_trip_category, get_
 from databases import init_db, Sessionlocal
 from models.trip import Trip
 from services.bedrock_service import get_ai_recommendation
+from fastapi.middleware.cors import CORSMiddleware
 
 class TripRequest(BaseModel):
     destination: str
     days: int
     budget: float
     travel_style: str
-    ai_recommendation: str
 
 init_db()
 app = FastAPI()
+origins = ["http://localhost:3000","http://127.0.0.1:3000", "http://localhost:3000/"]
+app.add_middleware(CORSMiddleware,allow_origins=origins, allow_headers=["*"], allow_methods=["*"], allow_credentials=True)
 
 @app.get("/")
 def home():
