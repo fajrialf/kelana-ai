@@ -2,5 +2,5 @@ export interface TripPayload {
     destination: string;
     budget:  number;
     days: number;
-    travelStyle: string;
+    travel_style: string;
 }

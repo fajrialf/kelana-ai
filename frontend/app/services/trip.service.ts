@@ -3,17 +3,51 @@ import { TripPayload } from "../models/trip.payload";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
   
-async function createTrip(trip: TripPayload) {
-    return fetch(`${BASE_URL}/api/v1/trip`, {
+async function createTrip(trip: TripPayload): Promise<Trip> {
+    const response = await fetch(`${BASE_URL}/api/v1/trip`, {
         headers: { "content-type": "application/json" },
         method: "POST",
-        body: JSON.stringify({
-        destination: trip.destination,
-        budget: +trip.budget,
-        days: +trip.days,
-        travel_style: trip.travelStyle,
-        }),
-    }).then();
+        body: JSON.stringify(trip),
+    });
+    if (!response.ok) throw new Error(`Server error: ${response.status}`);
+    return response.json()
 }
 
-export {createTrip}
+export interface GetTripsParams {
+    q?: string;
+    sort?: "asc" | "desc";
+    page?: number;
+}
+
+export interface TripsPage {
+    data: Trip[];
+    total: number;
+    page: number;
+    total_pages: number;
+}
+
+async function getTrips(params?: GetTripsParams): Promise<TripsPage | Trip[]> {
+    const query = new URLSearchParams();
+    if (params?.q) query.set("q", params.q);
+    if (params?.sort) query.set("sort", params.sort);
+    if (params?.page) query.set("page", String(params.page));
+
+    const url = `${BASE_URL}/api/v1/trips${query.toString() ? `?${query.toString()}` : ""}`;
+    const response = await fetch(url, {
+        method: "GET",
+        cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`Server error: ${response.status}`);
+    return response.json();
+}
+
+async function getTrip(id: number): Promise<Trip> {
+    const response = await fetch(`${BASE_URL}/api/v1/trips/${id}`, {
+        headers: { "content-type": "application/json" },
+        method: "GET",
+    });
+    if (!response.ok) throw new Error(`Server error: ${response.status}`);
+    return response.json()
+}
+
+export {createTrip, getTrip, getTrips}

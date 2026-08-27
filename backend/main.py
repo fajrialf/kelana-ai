@@ -1,20 +1,18 @@
 from fastapi import FastAPI,HTTPException
-from pydantic import BaseModel
+from models.tripPayload import TripRequest
 from services.trip_service import calculate_daily_budget,get_trip_category, get_transportation_recommendation,get_trip_categories, get_recommended_places,get_recommended_transportations
 from databases import init_db, Sessionlocal
 from models.trip import Trip
 from services.bedrock_service import get_ai_recommendation
 from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
+import os
+import math
 
-class TripRequest(BaseModel):
-    destination: str
-    days: int
-    budget: float
-    travel_style: str
-
+load_dotenv()
 init_db()
 app = FastAPI()
-origins = ["http://localhost:3000","http://127.0.0.1:3000", "http://localhost:3000/"]
+origins = os.getenv("ALLOWED_ORIGINS").split(",")
 app.add_middleware(CORSMiddleware,allow_origins=origins, allow_headers=["*"], allow_methods=["*"], allow_credentials=True)
 
 @app.get("/")
@@ -29,7 +27,6 @@ def health_check():
 def create_trip(request: TripRequest):
     daily_budget = calculate_daily_budget(request.budget, request.days)
     category = get_trip_category(request.budget)
-    transportation = get_transportation_recommendation(category)
     ai_recommendation = get_ai_recommendation(request.destination, request.days, request.budget, request.travel_style)
     trip = Trip(
         destination=request.destination,
@@ -61,11 +58,22 @@ def get_transportations():
     return get_recommended_transportations()
 
 @app.get("/api/v1/trips")
-def get_trips():
+def get_trips(q: str="", page: int = 1, sort: str = "asc"):
     db = Sessionlocal()
-    trips = db.query(Trip).all()
+    colSort= None
+    if sort == "asc":
+        colSort = Trip.created_at.asc()
+    else:
+        colSort = Trip.created_at.desc()
+    trips = db.query(Trip).filter((Trip.destination.ilike(f"%{q}%")) | (Trip.ai_recommendation.ilike(f"%{q}%"))).order_by(colSort, Trip.budget.desc()).offset((page-1)*10).limit(10).all()
+    counts = db.query(Trip).count()
     db.close()
-    return trips
+    return {
+        "data": trips,
+        "total": counts,
+        "page":page,
+        "total_pages":math.ceil(counts/10)
+    }
 
 @app.get("/api/v1/trips/{trip_id}")
 def get_trip(trip_id :int):
