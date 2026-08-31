@@ -4,8 +4,10 @@ import { useState } from "react";
 import { createTrip } from "./services/trip.service";
 import { Trip } from "./models/trip";
 import { useRouter } from "next/navigation";
-
+import { useAuthGuard } from "./hooks/useAuthGuard";
+import AppNav from "./components/AppNav";
 export default function Home() {
+  const ready = useAuthGuard()
   const router = useRouter();
   const [form, setForm] = useState({
     destination: "",
@@ -79,11 +81,7 @@ export default function Home() {
             </div>
           </div>
         </header>
-        <nav className="flex items-center gap-2 rounded-xl border border-sky-100 bg-white px-4 py-2 text-sm shadow-sm">
-          <a href="/" className="font-semibold text-sky-700">Home</a>
-          <span className="text-slate-300">·</span>
-          <a href="/trips" className="text-slate-500 hover:text-sky-700 transition-colors">History</a>
-        </nav>
+        <AppNav active="home" />
         <div className="grid w-full gap-6 ">
           <form
             onSubmit={handleSubmit}

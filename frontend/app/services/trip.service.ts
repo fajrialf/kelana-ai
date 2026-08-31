@@ -2,10 +2,15 @@ import { Trip } from "../models/trip";
 import { TripPayload } from "../models/trip.payload";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-  
+
+function authHeaders(): Record<string, string> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("session") : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function createTrip(trip: TripPayload): Promise<Trip> {
     const response = await fetch(`${BASE_URL}/api/v1/trip`, {
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...authHeaders() },
         method: "POST",
         body: JSON.stringify(trip),
     });
@@ -35,6 +40,7 @@ async function getTrips(params?: GetTripsParams): Promise<TripsPage | Trip[]> {
     const url = `${BASE_URL}/api/v1/trips${query.toString() ? `?${query.toString()}` : ""}`;
     const response = await fetch(url, {
         method: "GET",
+        headers: { ...authHeaders() },
         cache: "no-store",
     });
     if (!response.ok) throw new Error(`Server error: ${response.status}`);
@@ -43,11 +49,29 @@ async function getTrips(params?: GetTripsParams): Promise<TripsPage | Trip[]> {
 
 async function getTrip(id: number): Promise<Trip> {
     const response = await fetch(`${BASE_URL}/api/v1/trips/${id}`, {
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", ...authHeaders() },
         method: "GET",
     });
     if (!response.ok) throw new Error(`Server error: ${response.status}`);
     return response.json()
 }
 
-export {createTrip, getTrip, getTrips}
+async function updateTrip(id: number, trip: TripPayload): Promise<Trip> {
+    const response = await fetch(`${BASE_URL}/api/v1/trips/${id}`, {
+        headers: { "content-type": "application/json", ...authHeaders() },
+        method: "PUT",
+        body: JSON.stringify(trip),
+    });
+    if (!response.ok) throw new Error(`Server error: ${response.status}`);
+    return response.json();
+}
+
+async function deleteTrip(id: number): Promise<void> {
+    const response = await fetch(`${BASE_URL}/api/v1/trips/${id}`, {
+        headers: { ...authHeaders() },
+        method: "DELETE",
+    });
+    if (!response.ok) throw new Error(`Server error: ${response.status}`);
+}
+
+export { createTrip, getTrip, getTrips, updateTrip, deleteTrip }

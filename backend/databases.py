@@ -12,4 +12,7 @@ Base = declarative_base()
 
 def init_db() -> None:
     """Init db"""
+    
+    import models.trip
+    import models.user
     Base.metadata.create_all(bind=engine)

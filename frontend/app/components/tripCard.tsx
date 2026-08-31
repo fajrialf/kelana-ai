@@ -1,7 +1,10 @@
 import { Trip } from "../models/trip";
+import { deleteTrip } from "../services/trip.service";
+import DeleteConfirmModal from "./DeleteConfirmModal";
 
 interface TripCardProps {
   trip: Trip;
+  onDeleted?: (id: number) => void;
 }
 
 // ── Flag ──────────────────────────────────────────────────────────────────────
@@ -152,15 +155,36 @@ function extractTravelStyle(aiText: string): string | null {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-import React from "react";
+import React, { useState } from "react";
 
-export default function TripCard({ trip }: TripCardProps) {
+export default function TripCard({ trip, onDeleted }: TripCardProps) {
   const countryCode = destinationToCountryCode(trip.destination);
   const catStyle = categoryStyle(trip.category);
   const travelStyle = trip.ai_recommendation ? extractTravelStyle(trip.ai_recommendation) : null;
   const styleMeta = travelStyle ? TRAVEL_STYLES[travelStyle] : null;
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setShowDeleteModal(true);
+  }
+
+  async function confirmDelete() {
+    setDeleting(true);
+    try {
+      await deleteTrip(trip.id);
+      onDeleted?.(trip.id);
+    } catch {
+      alert("Failed to delete trip. Please try again.");
+      setDeleting(false);
+      setShowDeleteModal(false);
+    }
+  }
 
   return (
+    <>
     <a
       href={`/trips/${trip.id}`}
       className="group flex flex-col gap-4 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm
@@ -249,10 +273,39 @@ export default function TripCard({ trip }: TripCardProps) {
             day: "numeric",
           })}
         </span>
-        <span className="text-xs font-medium text-sky-600 group-hover:underline">
-          View details →
-        </span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            aria-label="Delete trip"
+            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
+          >
+            {deleting ? (
+              <svg aria-hidden="true" className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+            ) : (
+              <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4h6v3M3 7h18" />
+              </svg>
+            )}
+          </button>
+          <span className="text-xs font-medium text-sky-600 group-hover:underline">
+            View details →
+          </span>
+        </div>
       </div>
     </a>
+
+    {showDeleteModal && (
+      <DeleteConfirmModal
+        destination={trip.destination}
+        deleting={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteModal(false)}
+      />
+    )}
+  </>
   );
 }

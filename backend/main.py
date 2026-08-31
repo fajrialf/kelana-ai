@@ -1,48 +1,53 @@
-from fastapi import FastAPI,HTTPException
-from models.tripPayload import TripRequest
-from services.trip_service import calculate_daily_budget,get_trip_category, get_transportation_recommendation,get_trip_categories, get_recommended_places,get_recommended_transportations
-from databases import init_db, Sessionlocal
-from models.trip import Trip
-from services.bedrock_service import get_ai_recommendation
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from dependencies import get_current_user
+from databases import init_db
+from models.tripPayload import TripRequest
+from models.userPayload import RegisterPayload, LoginPayload
+from services.trip_service import (
+    create_trip,
+    list_trips,
+    get_trip,
+    update_trip,
+    delete_trip,
+    get_trip_categories,
+    get_recommended_places,
+    get_recommended_transportations,
+)
+from services.auth_service import register as auth_register, auth_login, get_me
 import os
-import math
+from services.kb_services import retrieve_and_generate
+from models.questionPayload import QuestionPayload
 
 load_dotenv()
 init_db()
+
 app = FastAPI()
+
 origins = os.getenv("ALLOWED_ORIGINS").split(",")
-app.add_middleware(CORSMiddleware,allow_origins=origins, allow_headers=["*"], allow_methods=["*"], allow_credentials=True)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_headers=["*"],
+    allow_methods=["*"],
+    allow_credentials=True,
+)
+
+
+# ---------------------------------------------------------------------------
+# Misc
+# ---------------------------------------------------------------------------
 
 @app.get("/")
 def home():
-    return {"message":"First FastAPI APP"}
+    return {"message": "First FastAPI APP"}
+
 
 @app.get("/health")
 def health_check():
-    return {"status":"Ok"}
+    return {"status": "Ok"}
 
-@app.post("/api/v1/trip")
-def create_trip(request: TripRequest):
-    daily_budget = calculate_daily_budget(request.budget, request.days)
-    category = get_trip_category(request.budget)
-    ai_recommendation = get_ai_recommendation(request.destination, request.days, request.budget, request.travel_style)
-    trip = Trip(
-        destination=request.destination,
-        days=request.days,
-        budget=request.budget,
-        category=category,
-        daily_budget=daily_budget,
-        ai_recommendation=ai_recommendation
-    )
-
-    db = Sessionlocal()
-    db.add(trip)
-    db.commit()
-    db.refresh(trip)
-    db.close()
-    return trip
 
 @app.get("/api/v1/trip-categories")
 def trip_categories():
@@ -50,67 +55,58 @@ def trip_categories():
 
 
 @app.get("/api/v1/recommendations")
-def get_recommendations():
+def recommendations():
     return get_recommended_places()
 
+
 @app.get("/api/v1/transportations")
-def get_transportations():
+def transportations():
     return get_recommended_transportations()
 
+
+# ---------------------------------------------------------------------------
+# Trips
+# ---------------------------------------------------------------------------
+
+@app.post("/api/v1/trip")
+def create_trip_route(request: TripRequest, current_user: dict = Depends(get_current_user)):
+    return create_trip(request, user_id=int(current_user["sub"]))
+
+
 @app.get("/api/v1/trips")
-def get_trips(q: str="", page: int = 1, sort: str = "asc"):
-    db = Sessionlocal()
-    colSort= None
-    if sort == "asc":
-        colSort = Trip.created_at.asc()
-    else:
-        colSort = Trip.created_at.desc()
-    trips = db.query(Trip).filter((Trip.destination.ilike(f"%{q}%")) | (Trip.ai_recommendation.ilike(f"%{q}%"))).order_by(colSort, Trip.budget.desc()).offset((page-1)*10).limit(10).all()
-    counts = db.query(Trip).count()
-    db.close()
-    return {
-        "data": trips,
-        "total": counts,
-        "page":page,
-        "total_pages":math.ceil(counts/10)
-    }
+def get_trips_route(q: str = "", page: int = 1, sort: str = "asc", current_user: dict = Depends(get_current_user)):
+    return list_trips(user_id=int(current_user["sub"]), q=q, page=page, sort=sort)
+
 
 @app.get("/api/v1/trips/{trip_id}")
-def get_trip(trip_id :int):
-    db = Sessionlocal()
-    trip = db.query(Trip).filter(Trip.id == trip_id).first()
-    db.close()
-    if trip is None:
-        raise HTTPException(status_code=404, detail=f"Trip with id {trip_id} not found")
-    return trip
+def get_trip_route(trip_id: int, current_user: dict = Depends(get_current_user)):
+    return get_trip(trip_id, user_id=int(current_user["sub"]))
 
-@app.delete("/api/v1/trips/{trip_id}", status_code=204)
-def delete_trip(trip_id  :int):
-    db = Sessionlocal()
-    trip = db.query(Trip).filter(Trip.id == trip_id).first()
-    if trip is None:
-        raise HTTPException(status_code=404, detail=f"Trip with id {trip_id} not found")
-    db.delete(trip)
-    db.commit()
-    db.close()
 
 @app.put("/api/v1/trips/{trip_id}")
-def update_trip(trip_id: int, request: TripRequest):
-    db = Sessionlocal()
-    trip = db.query(Trip).filter(Trip.id == trip_id).first()
-    if trip is None:
-        raise HTTPException(status_code=404, detail=f"Trip with id {trip_id} not found")
-    
-    daily_budget = calculate_daily_budget(request.budget, request.days)
-    category = get_trip_category(request.budget)
-    
-    trip.destination = request.destination
-    trip.days = request.days
-    trip.budget = request.budget
-    trip.daily_budget = daily_budget
-    trip.category = category
+def update_trip_route(trip_id: int, request: TripRequest, current_user: dict = Depends(get_current_user)):
+    return update_trip(trip_id, request, user_id=int(current_user["sub"]))
 
-    db.commit()
-    db.refresh(trip)
-    db.close()
-    return trip
+
+@app.delete("/api/v1/trips/{trip_id}", status_code=204)
+def delete_trip_route(trip_id: int, current_user: dict = Depends(get_current_user)):
+    delete_trip(trip_id, user_id=int(current_user["sub"]))
+
+
+# ---------------------------------------------------------------------------
+# Auth
+# ---------------------------------------------------------------------------
+
+@app.post("/api/v1/auth/register")
+def register(request: RegisterPayload):
+    return auth_register(request)
+
+
+@app.post("/api/v1/auth/login")
+def login(request: LoginPayload):
+    return auth_login(request)
+
+
+@app.get("/api/v1/auth/me")
+def me(current_user: dict = Depends(get_current_user)):
+    return get_me(user_id=int(current_user["sub"]))
