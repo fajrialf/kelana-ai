@@ -4,7 +4,7 @@ import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useRouter } from "next/navigation";
 
 interface AppNavProps {
-  active?: "home" | "trips" | "profile";
+  active?: "home" | "trips" | "ask" | "profile";
 }
 
 export default function AppNav({ active }: AppNavProps) {
@@ -39,6 +39,17 @@ export default function AppNav({ active }: AppNavProps) {
         }
       >
         History
+      </a>
+      <span className="text-slate-300">·</span>
+      <a
+        href="/ask"
+        className={
+          active === "ask"
+            ? "font-semibold text-sky-700"
+            : "text-slate-500 hover:text-sky-700 transition-colors"
+        }
+      >
+        Ask AI
       </a>
 
       {/* Right: welcome + profile + logout */}

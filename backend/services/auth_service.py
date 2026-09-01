@@ -6,6 +6,7 @@ from models.userPayload import RegisterPayload, LoginPayload
 from models.user import User
 from databases import Sessionlocal
 from fastapi import HTTPException
+from models.trip import Trip
 
 def hash_password(password: str):
     return bcrypt.hashpw(bytes(password, encoding="utf-8"),bcrypt.gensalt(8)).decode("utf-8")
@@ -62,7 +63,6 @@ def auth_login(payload: LoginPayload):
     }
 
 def get_me(user_id: int):
-    from models.trip import Trip
     db = Sessionlocal()
     user = db.query(User).filter(User.id == user_id).first()
     trips_generated = db.query(Trip).filter(Trip.user_id == user_id).count()

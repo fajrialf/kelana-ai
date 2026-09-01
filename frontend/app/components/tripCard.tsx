@@ -144,15 +144,6 @@ const TRAVEL_STYLES: Record<string, { label: string; classes: string; icon: Reac
   },
 };
 
-function extractTravelStyle(aiText: string): string | null {
-  const firstLine = aiText.split("\n").find((l) => l.trim().length > 0) ?? "";
-  const lower = firstLine.toLowerCase();
-  for (const style of Object.keys(TRAVEL_STYLES)) {
-    if (lower.includes(style)) return style;
-  }
-  return null;
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
 import React, { useState } from "react";
@@ -160,8 +151,7 @@ import React, { useState } from "react";
 export default function TripCard({ trip, onDeleted }: TripCardProps) {
   const countryCode = destinationToCountryCode(trip.destination);
   const catStyle = categoryStyle(trip.category);
-  const travelStyle = trip.ai_recommendation ? extractTravelStyle(trip.ai_recommendation) : null;
-  const styleMeta = travelStyle ? TRAVEL_STYLES[travelStyle] : null;
+  const styleMeta = trip.travel_style ? TRAVEL_STYLES[trip.travel_style] : null;
   const [deleting, setDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 

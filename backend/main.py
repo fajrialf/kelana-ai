@@ -110,3 +110,10 @@ def login(request: LoginPayload):
 @app.get("/api/v1/auth/me")
 def me(current_user: dict = Depends(get_current_user)):
     return get_me(user_id=int(current_user["sub"]))
+
+@app.post("/api/v1/ask")
+def ask_endpoint(request: QuestionPayload,current_user: dict = Depends(get_current_user)):
+    answer = retrieve_and_generate(request.question)
+    return{
+        "question": request.question,**answer
+    }
