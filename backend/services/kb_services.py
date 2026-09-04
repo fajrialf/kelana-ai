@@ -1,19 +1,3 @@
-# import boto3, json
-# import os
-# client = boto3.client("bedrock-agent-runtime",
-#         region_name=os.getenv("AWS_REGION"))
-# def ask_knowledgebase_base(question: str):
-#     response = client.retrieve_and_generate(
-#         input={"text": question},
-#         retrieveAndGenerateConfiguration={
-#             "type": "KNOWLEDGE_BASE",
-#             "knowledgeBaseConfiguration":{
-#                 "knowledgeBaseId":"kelana-travel-kb",
-#                 "modelArn":"anthrophic.claude-3-sonnet"
-#             }
-#         }
-#     )
-#     return response["output"]["text"]
 import os
 from urllib.parse import unquote, urlparse
 

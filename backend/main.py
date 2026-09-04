@@ -19,6 +19,10 @@ from services.auth_service import register as auth_register, auth_login, get_me
 import os
 from services.kb_services import retrieve_and_generate
 from models.questionPayload import QuestionPayload
+from models.conversationPayload import ConversationRequest
+from services.conversation_service import create_conversation, list_conversations, update_conversation
+from models.messagePayload import MessageRequest
+from services.message_service import send_message, get_messages
 
 load_dotenv()
 init_db()
@@ -117,3 +121,36 @@ def ask_endpoint(request: QuestionPayload,current_user: dict = Depends(get_curre
     return{
         "question": request.question,**answer
     }
+
+
+# ---------------------------------------------------------------------------
+# Conversations
+# ---------------------------------------------------------------------------
+
+@app.post("/api/v1/conversations", status_code=201)
+def create_conversation_route(request: ConversationRequest, current_user: dict = Depends(get_current_user)):
+    return create_conversation(request, user_id=int(current_user["sub"]))
+
+
+@app.get("/api/v1/conversations")
+def list_conversations_route(current_user: dict = Depends(get_current_user)):
+    return list_conversations(user_id=int(current_user["sub"]))
+
+
+@app.patch("/api/v1/conversations/{conversation_id}")
+def update_conversation_route(conversation_id: int, request: ConversationRequest, current_user: dict = Depends(get_current_user)):
+    return update_conversation(conversation_id, request.title, user_id=int(current_user["sub"]))
+
+
+# ---------------------------------------------------------------------------
+# Messages
+# ---------------------------------------------------------------------------
+
+@app.post("/api/v1/conversations/{conversation_id}/messages", status_code=201)
+def send_message_route(conversation_id: int, request: MessageRequest, current_user: dict = Depends(get_current_user)):
+    return send_message(conversation_id, request, user_id=int(current_user["sub"]))
+
+
+@app.get("/api/v1/conversations/{conversation_id}/messages")
+def get_messages_route(conversation_id: int, current_user: dict = Depends(get_current_user)):
+    return get_messages(conversation_id, user_id=int(current_user["sub"]))
