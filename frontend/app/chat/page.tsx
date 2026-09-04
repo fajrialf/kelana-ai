@@ -11,6 +11,7 @@ import {
   listConversations,
   sendMessage,
   updateConversation,
+  deleteConversation,
 } from "../services/conversation.service";
 
 // ---------------------------------------------------------------------------
@@ -85,6 +86,95 @@ function NewChatModal({ onConfirm, onClose, loading }: NewChatModalProps) {
 }
 
 // ---------------------------------------------------------------------------
+// Inline title editor
+// ---------------------------------------------------------------------------
+
+interface InlineTitleEditorProps {
+  title: string;
+  onSave: (newTitle: string) => Promise<void>;
+  /** Extra class applied to the text element when not editing */
+  textClassName?: string;
+}
+
+function InlineTitleEditor({ title, onSave, textClassName = "" }: InlineTitleEditorProps) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(title);
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Keep draft in sync if parent title changes
+  useEffect(() => {
+    if (!editing) setDraft(title);
+  }, [title, editing]);
+
+  function startEditing() {
+    setDraft(title);
+    setEditing(true);
+    // Focus after render
+    setTimeout(() => inputRef.current?.select(), 0);
+  }
+
+  async function commit() {
+    const trimmed = draft.trim();
+    if (!trimmed || trimmed === title) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave(trimmed);
+    } finally {
+      setSaving(false);
+      setEditing(false);
+    }
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commit();
+    } else if (e.key === "Escape") {
+      setEditing(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={inputRef}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={handleKeyDown}
+        disabled={saving}
+        className="w-full rounded-lg border border-sky-400 bg-white px-2 py-0.5 text-sm font-semibold text-slate-900 outline-none focus:ring-2 focus:ring-sky-200 disabled:opacity-60"
+        style={{ minWidth: 0 }}
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={startEditing}
+      title="Edit title"
+      className={`group flex items-center gap-1 text-left truncate ${textClassName}`}
+    >
+      <span className="truncate">{title}</span>
+      {/* Pencil icon */}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 16 16"
+        fill="currentColor"
+        className="h-3.5 w-3.5 shrink-0 opacity-0 transition group-hover:opacity-60"
+        aria-hidden="true"
+      >
+        <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.609Zm1.414 1.06a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354l-1.086-1.086ZM11.189 6.25 9.75 4.81 3.434 11.127a.25.25 0 0 0-.063.108l-.652 2.278 2.277-.652a.25.25 0 0 0 .108-.063L11.19 6.25Z" />
+      </svg>
+    </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 
@@ -96,6 +186,8 @@ export default function ChatPage() {
   const [loadingConvs, setLoadingConvs] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [creatingConv, setCreatingConv] = useState(false);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   // Active conversation state
   const [activeConv, setActiveConv] = useState<Conversation | null>(null);
@@ -224,6 +316,27 @@ export default function ChatPage() {
   }
 
   // ---------------------------------------------------------------------------
+  // Delete conversation
+  // ---------------------------------------------------------------------------
+
+  async function handleDeleteConversation(conversationId: number) {
+    setDeletingId(conversationId);
+    try {
+      await deleteConversation(conversationId);
+      setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+      if (activeConv?.id === conversationId) {
+        setActiveConv(null);
+        setMessages([]);
+        setSendError(null);
+      }
+    } catch {
+      // silent — conversation stays in the list
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  // ---------------------------------------------------------------------------
   // Send a message
   // ---------------------------------------------------------------------------
 
@@ -324,49 +437,98 @@ export default function ChatPage() {
                 <ul className="flex flex-col gap-1">
                   {conversations.map((conv) => {
                     const isActive = activeConv?.id === conv.id;
-                    // Use the live title from activeConv if this is the active conversation
                     const displayTitle = isActive && activeConv ? activeConv.title : conv.title;
+                    const isConfirming = confirmDeleteId === conv.id;
+                    const isDeleting = deletingId === conv.id;
+
                     return (
                       <li key={conv.id}>
-                        <div
-                          className={`group flex w-full items-center rounded-xl px-3 py-2.5 transition ${
-                            isActive
-                              ? "bg-sky-50 text-sky-700"
-                              : "text-slate-700 hover:bg-slate-50"
-                          }`}
-                        >
-                          {/* Clicking the text area selects the conversation */}
-                          <button
-                            onClick={() => selectConversation(conv)}
-                            className="min-w-0 flex-1 text-left"
+                        {/* ── Confirmation strip ── */}
+                        {isConfirming ? (
+                          <div className="rounded-xl border border-red-100 bg-red-50 px-3 py-2">
+                            <p className="mb-2 truncate text-xs font-medium text-red-700">
+                              Delete &quot;{displayTitle}&quot;?
+                            </p>
+                            <div className="flex gap-1.5">
+                              <button
+                                onClick={() => setConfirmDeleteId(null)}
+                                className="flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setConfirmDeleteId(null);
+                                  handleDeleteConversation(conv.id);
+                                }}
+                                disabled={isDeleting}
+                                className="flex-1 rounded-lg bg-red-500 px-2 py-1 text-xs font-semibold text-white hover:bg-red-600 disabled:opacity-60"
+                              >
+                                {isDeleting ? "Deleting…" : "Delete"}
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          /* ── Normal row ── */
+                          <div
+                            className={`group flex w-full items-center rounded-xl px-3 py-2.5 transition ${
+                              isActive
+                                ? "bg-sky-50 text-sky-700"
+                                : "text-slate-700 hover:bg-slate-50"
+                            }`}
                           >
-                            <p className="truncate text-sm font-medium">{displayTitle}</p>
-                            <p className="mt-0.5 text-xs text-slate-400">{formatDate(conv.created_at)}</p>
-                          </button>
-
-                          {/* Pencil icon — only visible on hover */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              // Select the conversation first if not active, then edit
-                              if (!isActive) selectConversation(conv);
-                              // We rely on the header's InlineTitleEditor; just select the conv
-                            }}
-                            title="Edit title"
-                            aria-label="Edit title"
-                            className="ml-1 shrink-0 opacity-0 transition group-hover:opacity-60 hover:!opacity-100"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              viewBox="0 0 16 16"
-                              fill="currentColor"
-                              className="h-3.5 w-3.5"
-                              aria-hidden="true"
+                            {/* Clicking the text area selects the conversation */}
+                            <button
+                              onClick={() => selectConversation(conv)}
+                              className="min-w-0 flex-1 text-left"
                             >
-                              <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.609Zm1.414 1.06a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354l-1.086-1.086ZM11.189 6.25 9.75 4.81 3.434 11.127a.25.25 0 0 0-.063.108l-.652 2.278 2.277-.652a.25.25 0 0 0 .108-.063L11.19 6.25Z" />
-                            </svg>
-                          </button>
-                        </div>
+                              <p className="truncate text-sm font-medium">{displayTitle}</p>
+                              <p className="mt-0.5 text-xs text-slate-400">{formatDate(conv.created_at)}</p>
+                            </button>
+
+                            {/* Pencil icon — only visible on hover */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (!isActive) selectConversation(conv);
+                              }}
+                              title="Edit title"
+                              aria-label="Edit title"
+                              className="ml-1 shrink-0 opacity-0 transition group-hover:opacity-60 hover:!opacity-100"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 16 16"
+                                fill="currentColor"
+                                className="h-3.5 w-3.5"
+                                aria-hidden="true"
+                              >
+                                <path d="M11.013 1.427a1.75 1.75 0 0 1 2.474 0l1.086 1.086a1.75 1.75 0 0 1 0 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 0 1-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.609Zm1.414 1.06a.25.25 0 0 0-.354 0L10.811 3.75l1.439 1.44 1.263-1.263a.25.25 0 0 0 0-.354l-1.086-1.086ZM11.189 6.25 9.75 4.81 3.434 11.127a.25.25 0 0 0-.063.108l-.652 2.278 2.277-.652a.25.25 0 0 0 .108-.063L11.19 6.25Z" />
+                              </svg>
+                            </button>
+
+                            {/* Trash icon — only visible on hover */}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setConfirmDeleteId(conv.id);
+                              }}
+                              title="Delete conversation"
+                              aria-label="Delete conversation"
+                              className="ml-0.5 shrink-0 opacity-0 transition group-hover:opacity-60 hover:!opacity-100 hover:text-red-500"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 16 16"
+                                fill="currentColor"
+                                className="h-3.5 w-3.5"
+                                aria-hidden="true"
+                              >
+                                <path fillRule="evenodd" d="M5 3.25V4H2.75a.75.75 0 0 0 0 1.5h.3l.815 8.15A1.5 1.5 0 0 0 5.357 15h5.285a1.5 1.5 0 0 0 1.493-1.35l.815-8.15h.3a.75.75 0 0 0 0-1.5H11v-.75A2.25 2.25 0 0 0 8.75 1h-1.5A2.25 2.25 0 0 0 5 3.25Zm2.25-.75a.75.75 0 0 0-.75.75V4h3v-.75a.75.75 0 0 0-.75-.75h-1.5ZM6.05 6a.75.75 0 0 1 .787.713l.275 5.5a.75.75 0 0 1-1.498.075l-.275-5.5A.75.75 0 0 1 6.05 6Zm3.9 0a.75.75 0 0 1 .712.787l-.275 5.5a.75.75 0 0 1-1.498-.075l.275-5.5A.75.75 0 0 1 9.95 6Z" clipRule="evenodd" />
+                              </svg>
+                            </button>
+                          </div>
+                        )}
                       </li>
                     );
                   })}
@@ -396,8 +558,12 @@ export default function ChatPage() {
                 {/* Conversation header */}
                 <div className="flex items-center gap-3 border-b border-sky-100 px-5 py-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800"
-                    > {activeConv.title}</p>
+                    <InlineTitleEditor
+                      title={activeConv.title}
+                      onSave={(newTitle) => handleUpdateTitle(activeConv.id, newTitle)}
+                      textClassName="text-sm font-semibold text-slate-800"
+                    />
+                    <p className="text-xs text-slate-400">{formatDate(activeConv.created_at)}</p>
                   </div>
                 </div>
 
@@ -450,6 +616,10 @@ export default function ChatPage() {
                         ) : (
                           <p className="whitespace-pre-wrap">{msg.content}</p>
                         )}
+                        {/* Timestamp */}
+                        <p className={`mt-1.5 text-right text-[10px] ${msg.role === "user" ? "text-sky-200" : "text-slate-400"}`}>
+                          {formatTime(msg.created_at)}
+                        </p>
                       </div>
                     </div>
                   ))}

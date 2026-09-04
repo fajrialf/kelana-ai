@@ -57,4 +57,11 @@ async function updateConversation(conversationId: number, title: string): Promis
   return response.json();
 }
 
-export { createConversation, listConversations, getMessages, sendMessage, updateConversation };
+async function deleteConversation(conversationId: number): Promise<void> {
+  const response = await apiFetch(`${BASE_URL}/api/v1/conversations/${conversationId}`, {
+    method: "DELETE",
+  });
+  if (!response.ok) throw new Error(`Server error: ${response.status}`);
+}
+
+export { createConversation, listConversations, getMessages, sendMessage, updateConversation, deleteConversation };

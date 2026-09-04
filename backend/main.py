@@ -20,7 +20,7 @@ import os
 from services.kb_services import retrieve_and_generate
 from models.questionPayload import QuestionPayload
 from models.conversationPayload import ConversationRequest
-from services.conversation_service import create_conversation, list_conversations, update_conversation
+from services.conversation_service import create_conversation, list_conversations, update_conversation, delete_conversation
 from models.messagePayload import MessageRequest
 from services.message_service import send_message, get_messages
 
@@ -140,6 +140,11 @@ def list_conversations_route(current_user: dict = Depends(get_current_user)):
 @app.patch("/api/v1/conversations/{conversation_id}")
 def update_conversation_route(conversation_id: int, request: ConversationRequest, current_user: dict = Depends(get_current_user)):
     return update_conversation(conversation_id, request.title, user_id=int(current_user["sub"]))
+
+
+@app.delete("/api/v1/conversations/{conversation_id}", status_code=204)
+def delete_conversation_route(conversation_id: int, current_user: dict = Depends(get_current_user)):
+    delete_conversation(conversation_id, user_id=int(current_user["sub"]))
 
 
 # ---------------------------------------------------------------------------
