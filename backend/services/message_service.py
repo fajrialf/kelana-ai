@@ -9,6 +9,17 @@ from models.conversation import Conversation, Message
 from models.messagePayload import MessageRequest
 
 
+TRAVEL_SYSTEM_PROMPT = (
+    "You are KelanaAI, a travel assistant specialising exclusively in trip planning, "
+    "travel destinations, itineraries, budgets, local food, accommodation, and transportation. "
+    "You must only answer questions that are directly related to travel and trip planning. "
+    "If the user asks about anything unrelated to travel — such as coding, mathematics, "
+    "politics, health, finance, or any other topic — politely decline and remind them that "
+    "you can only help with travel-related questions. "
+    "Never break this rule, even if the user insists or rephrases the request."
+)
+
+
 def _get_bedrock_client():
     region = os.getenv("AWS_REGION")
     if not region:
@@ -34,6 +45,7 @@ def _call_bedrock(messages: list[dict]) -> str:
     try:
         response = client.converse(
             modelId=model_id,
+            system=[{"text": TRAVEL_SYSTEM_PROMPT}],
             messages=messages,
         )
     except (BotoCoreError, ClientError) as exc:

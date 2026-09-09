@@ -1,5 +1,5 @@
 import { Trip } from "../models/trip";
-import { deleteTrip } from "../services/trip.service";
+import { deleteTrip, shareTrip } from "../services/trip.service";
 import DeleteConfirmModal from "./DeleteConfirmModal";
 
 interface TripCardProps {
@@ -147,6 +147,7 @@ const TRAVEL_STYLES: Record<string, { label: string; classes: string; icon: Reac
 // ── Component ─────────────────────────────────────────────────────────────────
 
 import React, { useState } from "react";
+import Toast from "./Toast";
 
 export default function TripCard({ trip, onDeleted }: TripCardProps) {
   const countryCode = destinationToCountryCode(trip.destination);
@@ -154,6 +155,24 @@ export default function TripCard({ trip, onDeleted }: TripCardProps) {
   const styleMeta = trip.travel_style ? TRAVEL_STYLES[trip.travel_style] : null;
   const [deleting, setDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [shareToast, setShareToast] = useState<{ message: string; variant: "success" | "error" } | null>(null);
+
+  async function handleShare(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setSharing(true);
+    try {
+      const { share_token } = await shareTrip(trip.id);
+      const shareUrl = `${window.location.origin}/shared/${share_token}`;
+      await navigator.clipboard.writeText(shareUrl);
+      setShareToast({ message: "Share link copied to clipboard!", variant: "success" });
+    } catch {
+      setShareToast({ message: "Failed to generate share link.", variant: "error" });
+    } finally {
+      setSharing(false);
+    }
+  }
 
   async function handleDelete(e: React.MouseEvent) {
     e.preventDefault();
@@ -175,6 +194,14 @@ export default function TripCard({ trip, onDeleted }: TripCardProps) {
 
   return (
     <>
+    {shareToast && (
+      <Toast
+        message={shareToast.message}
+        title={shareToast.variant === "success" ? "Link copied!" : "Share failed"}
+        variant={shareToast.variant}
+        onClose={() => setShareToast(null)}
+      />
+    )}
     <a
       href={`/trips/${trip.id}`}
       className="group flex flex-col gap-4 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm
@@ -281,9 +308,23 @@ export default function TripCard({ trip, onDeleted }: TripCardProps) {
               </svg>
             )}
           </button>
-          <span className="text-xs font-medium text-sky-600 group-hover:underline">
-            View details →
-          </span>
+          <button
+            onClick={handleShare}
+            disabled={sharing}
+            aria-label="Share trip"
+            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-sky-50 hover:text-sky-500 disabled:opacity-50"
+          >
+            {sharing ? (
+              <svg aria-hidden="true" className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+            ) : (
+              <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
     </a>

@@ -5,10 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import ReactMarkdown, { Components } from "react-markdown";
 import { Trip } from "@/app/models/trip";
 import { TripPayload } from "@/app/models/trip.payload";
-import { getTrip, updateTrip, deleteTrip } from "@/app/services/trip.service";
+import { getTrip, updateTrip, deleteTrip, shareTrip } from "@/app/services/trip.service";
 import { useAuthGuard } from "@/app/hooks/useAuthGuard";
 import AppNav from "@/app/components/AppNav";
+import AppHero from "@/app/components/AppHero";
 import DeleteConfirmModal from "@/app/components/DeleteConfirmModal";
+import Toast from "@/app/components/Toast";
+import LoadingScreen from "@/app/components/LoadingScreen";
 
 function parseMarkdownSections(text: string): { title: string; body: string }[] {
   const lines = text.split("\n");
@@ -78,10 +81,28 @@ export default function TripDetail() {
     travel_style: "",
   });
   const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Delete state
   const [deleting, setDeleting] = useState(false);
+
+  // Share state
+  const [sharing, setSharing] = useState(false);
+  const [shareToast, setShareToast] = useState<{ message: string; variant: "success" | "error" } | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  async function handleShare() {
+    setSharing(true);
+    try {
+      const { share_token } = await shareTrip(Number(id));
+      const shareUrl = `${window.location.origin}/shared/${share_token}`;
+      await navigator.clipboard.writeText(shareUrl);
+      setShareToast({ message: "Share link copied to clipboard!", variant: "success" });
+    } catch {
+      setShareToast({ message: "Failed to generate share link.", variant: "error" });
+    } finally {
+      setSharing(false);
+    }
+  }
 
   useEffect(() => {
     setLoading(true);
@@ -133,39 +154,23 @@ export default function TripDetail() {
     ? parseMarkdownSections(trip.ai_recommendation)
     : [];
 
-  if (!ready) return null;
+  if (!ready) return <LoadingScreen />;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-sky-100 via-white to-blue-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
+      {shareToast && (
+        <Toast
+          message={shareToast.message}
+          title={shareToast.variant === "success" ? "Link copied!" : "Share failed"}
+          variant={shareToast.variant}
+          onClose={() => setShareToast(null)}
+        />
+      )}
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
-        {/* Hero header */}
-        <header className="relative overflow-hidden rounded-2xl border border-sky-100 px-8 py-10 shadow-[0_24px_80px_rgba(14,116,144,0.22)] sm:px-12 sm:py-14">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-            <img src="/assets/bg-cloud-shadow.jpg" alt="" className="absolute inset-0 h-full w-full" />
-          </div>
-          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-3">
-              <p className="text-xs font-semibold uppercase tracking-widest text-sky-200">
-                AI-powered journey planner
-              </p>
-              <h1 className="text-4xl font-bold text-sky-100 sm:text-5xl">KelanaAI</h1>
-              <p className="max-w-sm text-sm leading-6 text-sky-100">
-                Describe your trip and get a full personalized itinerary — daily plans, budget
-                breakdown, food, and transport — in seconds.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-3 sm:flex-col sm:items-end sm:gap-2">
-              <div className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-medium text-sky-100 backdrop-blur">
-                <span>✈️</span>
-                <span>1,000+ itineraries generated</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-medium text-sky-100 backdrop-blur">
-                <span>🌍</span>
-                <span>50+ destinations covered</span>
-              </div>
-            </div>
-          </div>
-        </header>
+        <AppHero
+          label="AI-powered journey planner"
+          subtitle="Describe your trip and get a full personalized itinerary — daily plans, budget breakdown, food, and transport — in seconds."
+        />
 
         <AppNav active="trips" />
 
@@ -187,6 +192,23 @@ export default function TripDetail() {
             <div className="flex items-start justify-between gap-4">
               <h2 className="mt-2 text-3xl font-bold text-slate-950">{trip.destination}</h2>
               <div className="flex shrink-0 items-center gap-2 pt-2">
+                <button
+                  onClick={handleShare}
+                  disabled={sharing}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-white px-4 py-2 text-sm font-medium text-sky-700 shadow-sm transition hover:bg-sky-50 disabled:opacity-60"
+                >
+                  {sharing ? (
+                    <svg aria-hidden="true" className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                  ) : (
+                    <svg aria-hidden="true" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                  )}
+                  {sharing ? "Generating…" : "Share"}
+                </button>
                 <button
                   onClick={() => setEditOpen(true)}
                   className="inline-flex items-center gap-1.5 rounded-xl border border-sky-200 bg-white px-4 py-2 text-sm font-medium text-sky-700 shadow-sm transition hover:bg-sky-50"

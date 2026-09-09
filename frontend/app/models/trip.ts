@@ -7,5 +7,6 @@ export interface Trip {
   category: string;
   daily_budget: number;
   ai_recommendation: string;
+  share_token?: string | null;
   created_at: string;
 }

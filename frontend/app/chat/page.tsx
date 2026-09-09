@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import AppNav from "../components/AppNav";
+import AppHero from "../components/AppHero";
 import { useAuthGuard } from "../hooks/useAuthGuard";
 import { Conversation, Message } from "../models/conversation";
 import {
@@ -13,6 +14,8 @@ import {
   updateConversation,
   deleteConversation,
 } from "../services/conversation.service";
+import LoadingScreen from "../components/LoadingScreen";
+import Toast from "../components/Toast";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -179,7 +182,7 @@ function InlineTitleEditor({ title, onSave, textClassName = "" }: InlineTitleEdi
 // ---------------------------------------------------------------------------
 
 export default function ChatPage() {
-  useAuthGuard();
+  const ready = useAuthGuard();
 
   // Sidebar state
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -252,6 +255,8 @@ export default function ChatPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  if (!ready) return <LoadingScreen />;
 
   // ---------------------------------------------------------------------------
   // Create new conversation
@@ -388,21 +393,22 @@ export default function ChatPage() {
 
   return (
     <main className="flex min-h-screen flex-col bg-gradient-to-br from-sky-100 via-white to-blue-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
+      {sendError && (
+        <Toast
+          message={sendError}
+          title="Message failed"
+          variant="error"
+          onClose={() => setSendError(null)}
+        />
+      )}
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 flex-1">
 
         {/* Header */}
-        <header className="relative overflow-hidden rounded-2xl border border-sky-100 px-8 py-8 shadow-[0_24px_80px_rgba(14,116,144,0.22)] sm:px-12">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-            <img src="/assets/bg-cloud-shadow.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
-          </div>
-          <div className="relative flex flex-col gap-2">
-            <p className="text-xs font-semibold uppercase tracking-widest text-sky-200">AI travel assistant</p>
-            <h1 className="text-3xl font-bold text-sky-100 sm:text-4xl">Chat</h1>
-            <p className="max-w-sm text-sm leading-6 text-sky-100">
-              Have a conversation with KelanaAI. Context is remembered within each chat.
-            </p>
-          </div>
-        </header>
+        <AppHero
+          label="AI travel assistant"
+          title="Chat"
+          subtitle="Have a conversation with KelanaAI. Context is remembered within each chat."
+        />
 
         <AppNav active="chat" />
 
@@ -642,13 +648,6 @@ export default function ChatPage() {
 
                   <div ref={bottomRef} />
                 </div>
-
-                {/* Error */}
-                {sendError && (
-                  <div className="mx-5 mb-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs text-red-700">
-                    {sendError}
-                  </div>
-                )}
 
                 {/* Input */}
                 <form

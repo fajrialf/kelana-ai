@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authLogin } from "@/app/services/auth.service";
+import AppHero from "@/app/components/AppHero";
+import Toast from "@/app/components/Toast";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -22,7 +24,7 @@ export default function LoginPage() {
     try {
       const data = await authLogin(form);
       localStorage.setItem("session", data.access_token);
-      router.push("/");
+      router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid email or password");
     } finally {
@@ -32,72 +34,20 @@ export default function LoginPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-sky-100 via-white to-blue-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
-      {/* Error toast */}
       {error && (
-        <div
-          role="alert"
-          aria-live="assertive"
-          className="fixed top-4 left-1/2 z-50 -translate-x-1/2 animate-[fadeSlideDown_0.3s_ease-out] flex items-center gap-3 rounded-2xl border border-red-200 bg-white px-5 py-3.5 shadow-lg shadow-red-100"
-        >
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-50">
-            <svg
-              aria-hidden="true"
-              className="h-4 w-4 text-red-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-slate-950">Sign in failed</p>
-            <p className="text-xs text-slate-500">{error}</p>
-          </div>
-          <button
-            onClick={() => setError(null)}
-            aria-label="Dismiss"
-            className="ml-2 rounded-lg p-1 text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+        <Toast
+          message={error}
+          title="Sign in failed"
+          variant="error"
+          onClose={() => setError(null)}
+        />
       )}
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
         {/* Header */}
-        <header className="relative overflow-hidden rounded-2xl border border-sky-100 px-8 py-10 shadow-[0_24px_80px_rgba(14,116,144,0.22)] sm:px-12 sm:py-14">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-            <img src="/assets/bg-cloud-shadow.jpg" alt="" className="absolute inset-0 h-full w-full" />
-          </div>
-
-          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-3">
-              <p className="text-xs font-semibold uppercase tracking-widest text-sky-200">
-                AI-powered journey planner
-              </p>
-              <h1 className="text-4xl font-bold text-sky-100 sm:text-5xl">
-                KelanaAI
-              </h1>
-              <p className="max-w-sm text-sm leading-6 text-sky-100">
-                Welcome back! Sign in to continue planning your next adventure.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3 sm:flex-col sm:items-end sm:gap-2">
-              <div className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-medium text-sky-100 backdrop-blur">
-                <span>✈️</span>
-                <span>1,000+ itineraries generated</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-medium text-sky-100 backdrop-blur">
-                <span>🌍</span>
-                <span>50+ destinations covered</span>
-              </div>
-            </div>
-          </div>
-        </header>
+        <AppHero
+          label="AI-powered journey planner"
+          subtitle="Welcome back! Sign in to continue planning your next adventure."
+        />
 
         {/* Login card */}
         <div className="mx-auto w-full max-w-md">
@@ -136,12 +86,6 @@ export default function LoginPage() {
                 <label htmlFor="password" className="text-sm font-medium text-slate-700">
                   Password
                 </label>
-                <a
-                  href="/auth/forgot-password"
-                  className="text-xs text-sky-600 hover:text-sky-700 transition-colors"
-                >
-                  Forgot password?
-                </a>
               </div>
               <input
                 id="password"

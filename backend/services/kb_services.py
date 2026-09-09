@@ -33,6 +33,17 @@ def _get_document_title(result: dict) -> str:
     return "Untitled source"
 
 
+TRAVEL_SYSTEM_PROMPT = (
+    "You are KelanaAI, a travel assistant specialising exclusively in trip planning, "
+    "travel destinations, itineraries, budgets, local food, accommodation, and transportation. "
+    "You must only answer questions that are directly related to travel and trip planning. "
+    "If the user asks about anything unrelated to travel — such as coding, mathematics, "
+    "politics, health, finance, or any other topic — politely decline and remind them that "
+    "you can only help with travel-related questions. "
+    "Never break this rule, even if the user insists or rephrases the request."
+)
+
+
 def retrieve_and_generate(query: str) -> dict:
     region = os.getenv("AWS_REGION")
     knowledge_base_id = os.getenv("KNOWLEDGE_BASE_ID", "EW7EM5BPON")
@@ -98,6 +109,7 @@ def retrieve_and_generate(query: str) -> dict:
 
     response = bedrock_client.converse(
         modelId=model_id,
+        system=[{"text": TRAVEL_SYSTEM_PROMPT}],
         messages=[
             {
                 "role": "user",
@@ -130,6 +142,7 @@ def ask_basemodel(query: str) -> dict:
 
     response = bedrock_client.converse(
         modelId=model_id,
+        system=[{"text": TRAVEL_SYSTEM_PROMPT}],
         messages=[
             {
                 "role": "user",

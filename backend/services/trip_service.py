@@ -1,4 +1,5 @@
 import math
+import secrets
 from fastapi import HTTPException
 from databases import Sessionlocal
 from models.trip import Trip
@@ -167,3 +168,37 @@ def delete_trip(trip_id: int, user_id: int) -> None:
     db.delete(trip)
     db.commit()
     db.close()
+
+
+def share_trip(trip_id: int, user_id: int) -> dict:
+    """Generate (or return existing) share token for a trip."""
+    db = Sessionlocal()
+    trip = db.query(Trip).filter(Trip.id == trip_id).first()
+
+    if trip is None:
+        db.close()
+        raise HTTPException(status_code=404, detail=f"Trip with id {trip_id} not found")
+    if trip.user_id != user_id:
+        db.close()
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    if not trip.share_token:
+        trip.share_token = secrets.token_urlsafe(32)
+        db.commit()
+        db.refresh(trip)
+
+    token = trip.share_token
+    db.close()
+    return {"share_token": token}
+
+
+def get_shared_trip(token: str) -> Trip:
+    """Return a trip by its share token — no auth required."""
+    db = Sessionlocal()
+    trip = db.query(Trip).filter(Trip.share_token == token).first()
+    db.close()
+
+    if trip is None:
+        raise HTTPException(status_code=404, detail="Shared trip not found or link is invalid")
+
+    return trip

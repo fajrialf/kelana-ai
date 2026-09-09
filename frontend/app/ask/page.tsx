@@ -3,17 +3,22 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import AppNav from "../components/AppNav";
+import AppHero from "../components/AppHero";
 import { useAuthGuard } from "../hooks/useAuthGuard";
 import { askQuestion } from "../services/ask.service";
 import { AskResponse } from "../models/ask";
+import LoadingScreen from "../components/LoadingScreen";
+import Toast from "../components/Toast";
 
 export default function AskPage() {
-  useAuthGuard();
+  const ready = useAuthGuard();
 
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AskResponse | null>(null);
+
+  if (!ready) return <LoadingScreen />;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -35,23 +40,22 @@ export default function AskPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-sky-100 via-white to-blue-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
+      {error && (
+        <Toast
+          message={error}
+          title="Request failed"
+          variant="error"
+          onClose={() => setError(null)}
+        />
+      )}
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
 
         {/* Header */}
-        <header className="relative overflow-hidden rounded-2xl border border-sky-100 px-8 py-10 shadow-[0_24px_80px_rgba(14,116,144,0.22)] sm:px-12 sm:py-14">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-            <img src="/assets/bg-cloud-shadow.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
-          </div>
-          <div className="relative flex flex-col gap-3">
-            <p className="text-xs font-semibold uppercase tracking-widest text-sky-200">
-              AI travel assistant
-            </p>
-            <h1 className="text-4xl font-bold text-sky-100 sm:text-5xl">Ask KelanaAI</h1>
-            <p className="max-w-sm text-sm leading-6 text-sky-100">
-              Ask any travel question — destinations, tips, budgets, packing lists — and get an instant AI-powered answer.
-            </p>
-          </div>
-        </header>
+        <AppHero
+          label="AI travel assistant"
+          title="Ask KelanaAI"
+          subtitle="Ask any travel question — destinations, tips, budgets, packing lists — and get an instant AI-powered answer."
+        />
 
         <AppNav active="ask" />
 
@@ -75,12 +79,6 @@ export default function AskPage() {
             required
             className="rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100 resize-none"
           />
-
-          {error && (
-            <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
-            </p>
-          )}
 
           <button
             type="submit"

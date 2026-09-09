@@ -2,9 +2,11 @@
 
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useRouter } from "next/navigation";
+import Link from 'next/link'
+ 
 
 interface AppNavProps {
-  active?: "home" | "trips" | "ask" | "chat" | "profile";
+  active?: "dashboard" | "trips" | "ask" | "chat" | "profile" | "about";
 }
 
 export default function AppNav({ active }: AppNavProps) {
@@ -13,16 +15,16 @@ export default function AppNav({ active }: AppNavProps) {
 
   function handleLogout() {
     localStorage.removeItem("session");
-    router.replace("/auth/login");
+    router.replace("/");
   }
 
   return (
     <nav className="flex items-center gap-2 rounded-xl border border-sky-100 bg-white px-4 py-2 text-sm shadow-sm">
       {/* Left: breadcrumb links */}
       <a
-        href="/"
+        href="/dashboard"
         className={
-          active === "home"
+          active === "dashboard"
             ? "font-semibold text-sky-700"
             : "text-slate-500 hover:text-sky-700 transition-colors"
         }

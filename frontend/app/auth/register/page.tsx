@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authRegister } from "@/app/services/auth.service";
+import AppHero from "@/app/components/AppHero";
+import Toast from "@/app/components/Toast";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -44,63 +46,29 @@ export default function RegisterPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-sky-100 via-white to-blue-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
-      {/* Toast notification */}
       {success && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed top-4 left-1/2 z-50 -translate-x-1/2 animate-[fadeSlideDown_0.3s_ease-out] flex items-center gap-3 rounded-2xl border border-emerald-200 bg-white px-5 py-3.5 shadow-lg shadow-emerald-100"
-        >
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50">
-            <svg
-              aria-hidden="true"
-              className="h-4 w-4 text-emerald-600"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth="2.5"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-          </span>
-          <div>
-            <p className="text-sm font-semibold text-slate-950">Account created!</p>
-            <p className="text-xs text-slate-500">Redirecting you to sign in…</p>
-          </div>
-        </div>
+        <Toast
+          message="Redirecting you to sign in…"
+          title="Account created!"
+          variant="success"
+          onClose={() => {}}
+          duration={0}
+        />
+      )}
+      {error && (
+        <Toast
+          message={error}
+          title="Registration failed"
+          variant="error"
+          onClose={() => setError(null)}
+        />
       )}
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
         {/* Header */}
-        <header className="relative overflow-hidden rounded-2xl border border-sky-100 px-8 py-10 shadow-[0_24px_80px_rgba(14,116,144,0.22)] sm:px-12 sm:py-14">
-          <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-            <img src="/assets/bg-cloud-shadow.jpg" alt="" className="absolute inset-0 h-full w-full" />
-          </div>
-
-          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-col gap-3">
-              <p className="text-xs font-semibold uppercase tracking-widest text-sky-200">
-                AI-powered journey planner
-              </p>
-              <h1 className="text-4xl font-bold text-sky-100 sm:text-5xl">
-                KelanaAI
-              </h1>
-              <p className="max-w-sm text-sm leading-6 text-sky-100">
-                Create your account and start planning unforgettable journeys with AI.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-3 sm:flex-col sm:items-end sm:gap-2">
-              <div className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-medium text-sky-100 backdrop-blur">
-                <span>✈️</span>
-                <span>1,000+ itineraries generated</span>
-              </div>
-              <div className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-medium text-sky-100 backdrop-blur">
-                <span>🌍</span>
-                <span>50+ destinations covered</span>
-              </div>
-            </div>
-          </div>
-        </header>
+        <AppHero
+          label="AI-powered journey planner"
+          subtitle="Create your account and start planning unforgettable journeys with AI."
+        />
 
         {/* Register card */}
         <div className="mx-auto w-full max-w-md">
@@ -188,13 +156,6 @@ export default function RegisterPage() {
                 className="rounded-xl border border-sky-200 bg-white px-4 py-3 text-sm text-slate-950 outline-none transition placeholder:text-slate-400 focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
               />
             </div>
-
-            {/* Error */}
-            {error && (
-              <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </p>
-            )}
 
             {/* Submit */}
             <button

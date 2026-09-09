@@ -68,4 +68,23 @@ async function deleteTrip(id: number): Promise<void> {
   if (!response.ok) throw new Error(`Server error: ${response.status}`);
 }
 
-export { createTrip, getTrip, getTrips, updateTrip, deleteTrip };
+async function shareTrip(id: number): Promise<{ share_token: string }> {
+  const response = await apiFetch(`${BASE_URL}/api/v1/trips/${id}/share`, {
+    method: "POST",
+  });
+  if (!response.ok) throw new Error(`Server error: ${response.status}`);
+  return response.json();
+}
+
+/** Public — no auth token or frontend key required. */
+async function getSharedTrip(token: string): Promise<Trip> {
+  const response = await fetch(`${BASE_URL}/api/v1/shared/${token}`, {
+    method: "GET",
+    cache: "no-store",
+  });
+  if (response.status === 404) throw new Error("Trip not found or link is invalid.");
+  if (!response.ok) throw new Error(`Server error: ${response.status}`);
+  return response.json();
+}
+
+export { createTrip, getTrip, getTrips, updateTrip, deleteTrip, shareTrip, getSharedTrip };

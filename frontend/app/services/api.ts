@@ -1,6 +1,7 @@
 /**
  * Wrapper around fetch that:
  * - Injects the Authorization header from localStorage when a token exists.
+ * - Injects the X-Frontend-Key header required by the backend middleware.
  * - On a 401 response, clears the session and redirects to /auth/login.
  */
 export class UnauthorizedError extends Error {
@@ -25,10 +26,12 @@ export async function apiFetch(
   init: RequestInit = {}
 ): Promise<Response> {
   const token = getToken();
+  const frontendKey = process.env.NEXT_PUBLIC_FRONTEND_API_KEY ?? "";
 
   const headers: Record<string, string> = {
     ...(init.headers as Record<string, string>),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(frontendKey ? { "x-frontend-key": frontendKey } : {}),
   };
 
   const response = await fetch(input, { ...init, headers });

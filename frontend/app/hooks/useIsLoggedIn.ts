@@ -1,23 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 
 /**
- * Checks for a valid, non-expired "session" JWT in localStorage.
- * - No token → redirect to /auth/login.
- * - Token present but expired or malformed → clear it, then redirect.
- * - Token valid → set ready = true so protected content can render.
+ * Returns true if a valid, non-expired JWT session exists in localStorage.
+ * Does NOT redirect — use useAuthGuard for protected pages.
+ * Returns null while mounting (avoids SSR/hydration mismatch on the nav).
  */
-export function useAuthGuard(): boolean {
-  const router = useRouter();
-  const [ready, setReady] = useState(false);
+export function useIsLoggedIn(): boolean | null {
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("session");
 
     if (!token) {
-      router.replace("/");
+      setLoggedIn(false);
       return;
     }
 
@@ -32,12 +29,12 @@ export function useAuthGuard(): boolean {
         throw new Error("Token expired");
       }
 
-      setReady(true);
+      setLoggedIn(true);
     } catch {
       localStorage.removeItem("session");
-      router.replace("/");
+      setLoggedIn(false);
     }
-  }, [router]);
+  }, []);
 
-  return ready;
+  return loggedIn;
 }

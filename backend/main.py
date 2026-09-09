@@ -1,5 +1,7 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 from dotenv import load_dotenv
 from dependencies import get_current_user
 from databases import init_db
@@ -14,6 +16,8 @@ from services.trip_service import (
     get_trip_categories,
     get_recommended_places,
     get_recommended_transportations,
+    share_trip,
+    get_shared_trip,
 )
 from services.auth_service import register as auth_register, auth_login, get_me
 import os
@@ -27,9 +31,75 @@ from services.message_service import send_message, get_messages
 load_dotenv()
 init_db()
 
-app = FastAPI()
+# ---------------------------------------------------------------------------
+# Environment flags
+# ---------------------------------------------------------------------------
 
-origins = os.getenv("ALLOWED_ORIGINS").split(",")
+ENV = os.getenv("ENV").lower()
+print(ENV)
+IS_PRODUCTION = ENV == "production"
+
+# Secret header value the frontend must send on every request.
+# Set FRONTEND_API_KEY in .env to a strong random string.
+FRONTEND_API_KEY = os.getenv("FRONTEND_API_KEY", "")
+FRONTEND_HEADER_NAME = "x-frontend-key"
+
+# ---------------------------------------------------------------------------
+# App — docs disabled in production
+# ---------------------------------------------------------------------------
+
+app = FastAPI(
+    docs_url=None if IS_PRODUCTION else "/docs",
+    redoc_url=None if IS_PRODUCTION else "/redoc",
+    openapi_url=None if IS_PRODUCTION else "/openapi.json",
+)
+
+# ---------------------------------------------------------------------------
+# Middleware: enforce frontend key header on all /api routes
+# ---------------------------------------------------------------------------
+
+class FrontendKeyMiddleware(BaseHTTPMiddleware):
+    """
+    Rejects requests to /api/* that do not carry the correct
+    X-Frontend-Key header. Skipped in development or when
+    FRONTEND_API_KEY is not configured.
+    """
+
+    # Paths that bypass the key check (public endpoints, health probes)
+    EXEMPT_PREFIXES = ["/api/v1/shared/"]
+
+    async def dispatch(self, request: Request, call_next):
+        # Only enforce on /api routes
+        if not request.url.path.startswith("/api"):
+            return await call_next(request)
+
+        # Skip enforcement for public/shared routes
+        for prefix in self.EXEMPT_PREFIXES:
+            if request.url.path.startswith(prefix):
+                return await call_next(request)
+
+        # Skip enforcement when no key is configured (dev convenience)
+        if not FRONTEND_API_KEY:
+            return await call_next(request)
+
+        provided_key = request.headers.get(FRONTEND_HEADER_NAME, "")
+        print(provided_key, FRONTEND_API_KEY)
+        if provided_key != FRONTEND_API_KEY:
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "Direct API access is not allowed."},
+            )
+
+        return await call_next(request)
+
+
+app.add_middleware(FrontendKeyMiddleware)
+
+# ---------------------------------------------------------------------------
+# CORS
+# ---------------------------------------------------------------------------
+
+origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -95,6 +165,18 @@ def update_trip_route(trip_id: int, request: TripRequest, current_user: dict = D
 @app.delete("/api/v1/trips/{trip_id}", status_code=204)
 def delete_trip_route(trip_id: int, current_user: dict = Depends(get_current_user)):
     delete_trip(trip_id, user_id=int(current_user["sub"]))
+
+
+@app.post("/api/v1/trips/{trip_id}/share")
+def share_trip_route(trip_id: int, current_user: dict = Depends(get_current_user)):
+    """Generate (or return existing) share token for a trip."""
+    return share_trip(trip_id, user_id=int(current_user["sub"]))
+
+
+@app.get("/api/v1/shared/{token}")
+def get_shared_trip_route(token: str):
+    """Public endpoint — returns trip by share token, no auth required."""
+    return get_shared_trip(token)
 
 
 # ---------------------------------------------------------------------------

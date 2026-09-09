@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, Text,DateTime, func, BigInteger,ForeignKey
+from sqlalchemy import Column, Integer, String, Float, Text, DateTime, func, BigInteger, ForeignKey
 from sqlalchemy.orm import relationship
 from databases import Base
 
@@ -13,6 +13,7 @@ class Trip(Base):
     category = Column(String, nullable=False)
     daily_budget = Column(Float, nullable=False)
     ai_recommendation = Column(Text, nullable=True)
+    share_token = Column(String(64), unique=True, nullable=True, index=True)
     created_at= Column(DateTime(timezone=True),server_default=func.now(),nullable=False )
 
     user = relationship("User", back_populates="trips")
