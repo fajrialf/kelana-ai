@@ -135,29 +135,6 @@ export default function AboutPage() {
           </div>
         </section>
 
-        {/* ── Tech stack ───────────────────────────────────────────────────── */}
-        <section className="bg-sky-50/60 px-4 py-16 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-7xl">
-            <h2 className="text-xl font-semibold text-slate-950">Built With</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              A modern, lightweight stack chosen for speed and reliability.
-            </p>
-            <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              {[
-                { label: "Frontend", value: "Next.js + Tailwind CSS" },
-                { label: "Backend", value: "FastAPI (Python)" },
-                { label: "AI Model", value: "Amazon Bedrock" },
-                { label: "Database", value: "PostgreSQL" },
-              ].map(({ label, value }) => (
-                <div key={label} className="rounded-xl bg-white px-4 py-3 shadow-sm">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-sky-600">{label}</p>
-                  <p className="mt-1 text-sm font-medium text-slate-800">{value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         {/* ── CTA Banner ───────────────────────────────────────────────────── */}
         <section className="px-4 py-20 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl overflow-hidden rounded-3xl bg-gradient-to-br from-sky-600 to-blue-700 px-8 py-14 text-center shadow-2xl shadow-sky-200">

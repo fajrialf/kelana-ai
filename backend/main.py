@@ -36,7 +36,6 @@ init_db()
 # ---------------------------------------------------------------------------
 
 ENV = os.getenv("ENV").lower()
-print(ENV)
 IS_PRODUCTION = ENV == "production"
 
 # Secret header value the frontend must send on every request.
@@ -83,7 +82,6 @@ class FrontendKeyMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         provided_key = request.headers.get(FRONTEND_HEADER_NAME, "")
-        print(provided_key, FRONTEND_API_KEY)
         if provided_key != FRONTEND_API_KEY:
             return JSONResponse(
                 status_code=403,

@@ -105,11 +105,11 @@ def retrieve_and_generate(query: str) -> dict:
         "Return the answer in markdown format.\n\n"
         f"Context:\n{context}\n\n"
         f"Question:\n{query}"
+        f"{TRAVEL_SYSTEM_PROMPT}\n"
     )
 
     response = bedrock_client.converse(
         modelId=model_id,
-        system=[{"text": TRAVEL_SYSTEM_PROMPT}],
         messages=[
             {
                 "role": "user",
@@ -138,11 +138,11 @@ def ask_basemodel(query: str) -> dict:
         "Answer the question using the context below. "
         "Return the answer in markdown format.\n\n"
         f"Question:\n{query}"
+        f"{TRAVEL_SYSTEM_PROMPT}"
     )
 
     response = bedrock_client.converse(
         modelId=model_id,
-        system=[{"text": TRAVEL_SYSTEM_PROMPT}],
         messages=[
             {
                 "role": "user",

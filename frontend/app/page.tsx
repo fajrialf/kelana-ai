@@ -221,12 +221,6 @@ export default function LandingPage() {
                   >
                     Get started free
                   </a>
-                  <a
-                    href="/auth/login"
-                    className="rounded-2xl border border-white/30 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-white/10"
-                  >
-                    Sign in
-                  </a>
                 </>
               )}
             </div>
